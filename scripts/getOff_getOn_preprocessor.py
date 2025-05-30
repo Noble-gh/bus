@@ -17,6 +17,7 @@ avg_df = df.groupby('정류소ID')[time_columns].mean().round(2)
 # 정류소ID를 첫 번째 열로 초기화
 avg_df.reset_index(inplace=True)
 
+avg_df.to_json('data/getOff_getOn_avg.json', orient='records', force_ascii=False)
 # 저장
 avg_df.to_csv(output_path, index=False, encoding='utf-8-sig')
 
