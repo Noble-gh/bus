@@ -223,21 +223,25 @@ export default function Home() {
       const baseURL = process.env.NEXT_PUBLIC_BASE_URL || "";
 
       const predictRes = await fetch(`${baseURL}/api/predict`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          station_id: station["정류소ID"],
-        }),
-      });
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+  },
+  body: JSON.stringify({
+    station_id: station["정류소ID"],
+  }),
+});
 
-      if (!predictRes.ok) {
-        throw new Error(`예측 요청 실패(predict): ${predictRes.status}`);
-      }
+if (!predictRes.ok) {
+  const errorData = await predictRes.json().catch(() => ({}));
+  throw new Error(
+    `예측 요청 실패(predict): ${predictRes.status} - ${JSON.stringify(errorData)}`
+  );
+}
 
-      const predictData = await predictRes.json();
-      setPredictData(predictData || { congestion_level: "정보 없음" });
+const predictData = await predictRes.json();
+console.log("예측 데이터 응답:", predictData); // 응답 로깅
+setPredictData(predictData || { congestion_level: "정보 없음" });
 
       // 시간대별 데이터 시뮬레이션 (실제 API가 없는 경우)
       const simulatedTimeData = {
