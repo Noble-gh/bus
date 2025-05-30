@@ -228,7 +228,7 @@ export default function Home() {
     "Content-Type": "application/json",
   },
   body: JSON.stringify({
-    station_id: station["정류소ID"],
+    stationId: station["정류소ID"],
   }),
 });
 
