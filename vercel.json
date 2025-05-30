@@ -1,7 +1,10 @@
 {
   "version": 2,
-  "public": true,
-  "routes": [
-    { "src": "/data/(.*)", "dest": "/public/data/$1" }
-  ]
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "includeFiles": ["public/data/*"]
 }
