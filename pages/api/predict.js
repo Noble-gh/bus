@@ -24,6 +24,20 @@ function runMiddleware(req, res, fn) {
 }
 
 export default async function handler(req, res) {
+  // 1. 필드명 유연하게 처리
+  const stationId = req.body.station_id || req.body.stationId;
+
+  // 2. 명시적 타입 변환 (문자열로 통일)
+  const id = String(stationId).trim();
+
+  // 3. 필수값 검증 강화
+  if (!id || !/^\d+$/.test(id)) {
+    return res.status(400).json({ 
+      error: "Invalid station ID",
+      received: stationId,
+      expected: "Numeric string (e.g. '3600098200')"
+    });
+  }
   await runMiddleware(req, res, cors);
   
   if (req.method !== "POST") {
