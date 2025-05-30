@@ -31,9 +31,9 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { station_id } = req.body;
+    const { stationId } = req.body;  // station_id → stationId로 변경
     
-    if (!station_id) {
+    if (!stationId) {
       return res.status(400).json({ error: "정류장 ID가 필요합니다." });
     }
 
@@ -44,11 +44,11 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "예측 가능 시간: 05시~23시" });
     }
 
-    const level = await predictCongestion(station_id, hour);
+    const level = await predictCongestion(stationId, hour);
 
     return res.status(200).json({
       success: true,
-      station_id,
+      stationId,  // station_id → stationId로 통일
       hour: `${hour}시`,
       congestion_level: level,
     });
