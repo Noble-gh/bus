@@ -1,12 +1,31 @@
 import { predictCongestion } from "@/lib/predictor";
+import Cors from 'cors';
 
 export const config = {
   api: {
     bodyParser: true,
   },
 };
+// CORS 미들웨어 초기화
+const cors = Cors({
+  methods: ['POST', 'GET', 'HEAD'],
+  origin: '*', // 또는 특정 도메인으로 제한
+});
 
-export default function handler(req, res) {
+function runMiddleware(req, res, fn) {
+  return new Promise((resolve, reject) => {
+    fn(req, res, (result) => {
+      if (result instanceof Error) {
+        return reject(result);
+      }
+      return resolve(result);
+    });
+  });
+}
+
+export default async function handler(req, res) {
+  // CORS 미들웨어 실행
+  await runMiddleware(req, res, cors);
   if (req.method !== "POST") {
     return res.status(405).json({ error: "POST 요청만 허용됩니다." });
   }
@@ -14,10 +33,17 @@ export default function handler(req, res) {
   console.log(">>> Headers:", req.headers);
   console.log(">>> Body Raw:", req.body);
 
+  console.log(">>> Full Request:", {
+    method: req.method,
+    headers: req.headers,
+    body: req.body,
+    query: req.query,
+  });
+  
   const { station_id } = req.body || {};
-
+  
   if (!station_id) {
-    console.error("station_id가 undefined입니다.");
+    console.error("station_id가 undefined입니다. 전체 요청 본문:", req.body);
     return res.status(400).json({ error: "정류장 ID를 입력하세요." });
   }
 
