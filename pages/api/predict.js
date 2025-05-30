@@ -1,77 +1,53 @@
-import { predictCongestion } from "@/lib/predictor";
 import Cors from 'cors';
 
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};
-// CORS 미들웨어 초기화
+// Vercel 환경에 최적화된 CORS 설정
 const cors = Cors({
-  methods: ['POST', 'GET', 'HEAD'],
-  origin: '*', // 또는 특정 도메인으로 제한
+  methods: ['POST', 'OPTIONS'],
+  origin: [
+    'https://bus-flame.vercel.app',
+    'http://localhost:3000'
+  ],
+  allowedHeaders: ['Content-Type', 'x-vercel-id']
 });
 
-function runMiddleware(req, res, fn) {
-  return new Promise((resolve, reject) => {
-    fn(req, res, (result) => {
-      if (result instanceof Error) {
-        return reject(result);
-      }
-      return resolve(result);
-    });
-  });
-}
-
 export default async function handler(req, res) {
-  // 1. 필드명 유연하게 처리
-  const stationId = req.body.station_id || req.body.stationId;
+  // 1. CORS 실행
+  await new Promise((resolve, reject) => {
+    cors(req, res, (result) => result instanceof Error ? reject(result) : resolve(result));
+  });
 
-  // 2. 명시적 타입 변환 (문자열로 통일)
-  const id = String(stationId).trim();
+  // 2. Vercel 프록시 헤더 필터링
+  const cleanHeaders = Object.fromEntries(
+    Object.entries(req.headers).filter(([key]) => !key.startsWith('x-vercel-'))
+  );
 
-  // 3. 필수값 검증 강화
-  if (!id || !/^\d+$/.test(id)) {
-    return res.status(400).json({ 
-      error: "Invalid station ID",
-      received: stationId,
-      expected: "Numeric string (e.g. '3600098200')"
-    });
-  }
-  await runMiddleware(req, res, cors);
-  
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "POST 요청만 허용됩니다." });
-  }
-
+  // 3. 본문 파싱 (Vercel 특수 대응)
+  let body = {};
   try {
-    const { stationId } = req.body;  // station_id → stationId로 변경
-    
-    if (!stationId) {
-      return res.status(400).json({ error: "정류장 ID가 필요합니다." });
-    }
+    body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+  } catch (e) {
+    return res.status(400).json({ error: "Invalid JSON", details: e.message });
+  }
 
-    const now = new Date();
-    const hour = now.getHours();
-
-    if (hour < 5 || hour > 23) {
-      return res.status(400).json({ error: "예측 가능 시간: 05시~23시" });
-    }
-
-    const level = await predictCongestion(stationId, hour);
-
-    return res.status(200).json({
-      success: true,
-      stationId,  // station_id → stationId로 통일
-      hour: `${hour}시`,
-      congestion_level: level,
-    });
-    
-  } catch (error) {
-    console.error("API 오류:", error);
-    return res.status(500).json({ 
-      error: "서버 내부 오류",
-      details: error.message 
+  // 4. 필드명 유연하게 처리
+  const stationId = body.station_id || body.stationId;
+  if (!stationId) {
+    return res.status(400).json({
+      error: "Station ID required",
+      received_body: body,
+      headers: cleanHeaders
     });
   }
+
+  // 5. 타입 강제 변환 (Vercel 환경 대응)
+  const id = String(stationId).trim();
+  const hour = new Date().getHours();
+
+  // 6. 응답
+  return res.status(200).json({
+    success: true,
+    stationId: id,
+    hour: `${hour}시`,
+    congestion_level: "여유" // 임시 응답
+  });
 }
